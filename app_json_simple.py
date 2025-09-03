@@ -74,6 +74,8 @@ def home():
                 transition: background 0.3s; 
             }
             .btn:hover { background: #128C7E; }
+            .btn-secondary { background: #6c757d; }
+            .btn-secondary:hover { background: #545b62; }
             .status { 
                 background: #e8f5e8; 
                 padding: 15px; 
@@ -88,11 +90,211 @@ def home():
             <h1>🎉 Sistema de Invitaciones WhatsApp</h1>
             <div class="status">
                 <strong>✅ Sistema funcionando correctamente</strong><br>
-                Versión simplificada - Sin base de datos
+                Versión con Dashboard de Administración
             </div>
             <p>Crea invitaciones profesionales para WhatsApp con confirmación automática</p>
             <a href="/admin" class="btn">📝 Crear Invitación</a>
-            <a href="/api/test" class="btn">🧪 Probar API</a>
+            <a href="/dashboard" class="btn btn-secondary">📊 Ver Confirmaciones</a>
+            <a href="/api/test" class="btn btn-secondary">🧪 Probar API</a>
+        </div>
+    </body>
+    </html>
+    '''
+
+@app.route('/dashboard')
+def dashboard():
+    # Cargar datos
+    data = load_data()
+    
+    # Calcular estadísticas
+    total_invitaciones = len(data)
+    confirmadas = 0
+    parciales = 0
+    declinadas = 0
+    pendientes = 0
+    total_personas_confirmadas = 0
+    
+    invitaciones_list = []
+    
+    for inv_id, inv in data.items():
+        if inv['confirmado']:
+            if inv['numero_confirmados'] == inv['numero_invitados']:
+                confirmadas += 1
+                estado = 'Confirmado'
+                estado_class = 'confirmed'
+            elif inv['numero_confirmados'] > 0:
+                parciales += 1
+                estado = 'Parcial'
+                estado_class = 'partial'
+            else:
+                declinadas += 1
+                estado = 'Declinado'
+                estado_class = 'declined'
+            total_personas_confirmadas += inv['numero_confirmados']
+        else:
+            pendientes += 1
+            estado = 'Pendiente'
+            estado_class = 'pending'
+        
+        invitaciones_list.append({
+            'id': inv_id,
+            'nombre_evento': inv['nombre_evento'],
+            'nombre_invitado': inv['nombre_invitado'],
+            'numero_invitados': inv['numero_invitados'],
+            'numero_confirmados': inv['numero_confirmados'],
+            'estado': estado,
+            'estado_class': estado_class,
+            'comentarios': inv.get('comentarios', ''),
+            'fecha_confirmacion': inv.get('fecha_confirmacion', ''),
+            'fecha_evento': inv['fecha_evento']
+        })
+    
+    # Ordenar por fecha de creación (más recientes primero)
+    invitaciones_list.sort(key=lambda x: x['id'], reverse=True)
+    
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>📊 Dashboard - Confirmaciones</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{ 
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                min-height: 100vh; 
+                padding: 20px; 
+            }}
+            .container {{ 
+                max-width: 1200px; 
+                margin: 0 auto; 
+                background: white; 
+                border-radius: 20px; 
+                padding: 30px; 
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+            }}
+            .header {{ text-align: center; margin-bottom: 30px; }}
+            .header h1 {{ color: #25D366; font-size: 2em; margin-bottom: 10px; }}
+            .stats {{ 
+                display: grid; 
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+                gap: 20px; 
+                margin-bottom: 30px; 
+            }}
+            .stat-card {{ 
+                background: #f8f9fa; 
+                padding: 20px; 
+                border-radius: 12px; 
+                text-align: center; 
+            }}
+            .stat-number {{ font-size: 2em; font-weight: bold; margin-bottom: 5px; }}
+            .confirmed {{ color: #28a745; }}
+            .partial {{ color: #ffc107; }}
+            .declined {{ color: #dc3545; }}
+            .pending {{ color: #6c757d; }}
+            .table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+            .table th, .table td {{ padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }}
+            .table th {{ background: #f8f9fa; font-weight: 600; }}
+            .status-badge {{ 
+                padding: 4px 8px; 
+                border-radius: 4px; 
+                font-size: 0.8em; 
+                font-weight: bold; 
+            }}
+            .status-badge.confirmed {{ background: #d4edda; color: #155724; }}
+            .status-badge.partial {{ background: #fff3cd; color: #856404; }}
+            .status-badge.declined {{ background: #f8d7da; color: #721c24; }}
+            .status-badge.pending {{ background: #e2e3e5; color: #383d41; }}
+            .back-btn {{ 
+                background: #6c757d; 
+                color: white; 
+                padding: 10px 20px; 
+                text-decoration: none; 
+                border-radius: 5px; 
+                display: inline-block; 
+                margin-bottom: 20px; 
+            }}
+            .refresh-btn {{ 
+                background: #25D366; 
+                color: white; 
+                padding: 10px 20px; 
+                text-decoration: none; 
+                border-radius: 5px; 
+                display: inline-block; 
+                margin-left: 10px; 
+            }}
+            .no-data {{ text-align: center; padding: 40px; color: #6c757d; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <a href="/" class="back-btn">← Volver al inicio</a>
+            <a href="/dashboard" class="refresh-btn">🔄 Actualizar</a>
+            
+            <div class="header">
+                <h1>📊 Dashboard de Confirmaciones</h1>
+                <p>Resumen de todas las invitaciones y confirmaciones</p>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">{total_invitaciones}</div>
+                    <div>Total Invitaciones</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number confirmed">{confirmadas}</div>
+                    <div>Confirmadas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number partial">{parciales}</div>
+                    <div>Parciales</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number declined">{declinadas}</div>
+                    <div>Declinadas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number pending">{pendientes}</div>
+                    <div>Pendientes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number confirmed">{total_personas_confirmadas}</div>
+                    <div>Total Personas</div>
+                </div>
+            </div>
+            
+            {'''
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Evento</th>
+                        <th>Invitado</th>
+                        <th>Invitados</th>
+                        <th>Confirmados</th>
+                        <th>Estado</th>
+                        <th>Comentarios</th>
+                        <th>Enlace</th>
+                    </tr>
+                </thead>
+                <tbody>''' + ''.join([f'''
+                    <tr>
+                        <td><strong>{inv['nombre_evento']}</strong><br><small>{inv['fecha_evento']}</small></td>
+                        <td>{inv['nombre_invitado']}</td>
+                        <td>{inv['numero_invitados']}</td>
+                        <td>{inv['numero_confirmados']}</td>
+                        <td><span class="status-badge {inv['estado_class']}">{inv['estado']}</span></td>
+                        <td>{inv['comentarios'] if inv['comentarios'] else '-'}</td>
+                        <td><a href="/confirmar/{inv['id']}" target="_blank">Ver</a></td>
+                    </tr>''' for inv in invitaciones_list]) + '''
+                </tbody>
+            </table>''' if invitaciones_list else '''
+            <div class="no-data">
+                <h3>📭 No hay invitaciones aún</h3>
+                <p>Crea tu primera invitación para ver las confirmaciones aquí.</p>
+                <a href="/admin" class="refresh-btn">📝 Crear Invitación</a>
+            </div>'''}
         </div>
     </body>
     </html>
@@ -170,11 +372,21 @@ def admin():
                 display: inline-block; 
                 margin-bottom: 20px; 
             }
+            .dashboard-btn { 
+                background: #17a2b8; 
+                color: white; 
+                padding: 10px 20px; 
+                text-decoration: none; 
+                border-radius: 5px; 
+                display: inline-block; 
+                margin-left: 10px; 
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <a href="/" class="back-btn">← Volver al inicio</a>
+            <a href="/dashboard" class="dashboard-btn">📊 Ver Confirmaciones</a>
             
             <div class="header">
                 <h1>📱 Crear Invitación WhatsApp</h1>
@@ -219,6 +431,7 @@ def admin():
                 <div id="mensajeWhatsapp" class="message-template"></div>
                 
                 <button onclick="copyMessage()" class="btn" style="margin-top: 15px;">📋 Copiar Mensaje</button>
+                <a href="/dashboard" class="btn" style="margin-top: 10px; background: #17a2b8;">📊 Ver en Dashboard</a>
             </div>
         </div>
         
@@ -551,14 +764,24 @@ def confirmar_asistencia(invitation_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/invitaciones', methods=['GET'])
+def listar_invitaciones():
+    """API para obtener todas las invitaciones"""
+    try:
+        data = load_data()
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/test')
 def test():
     return jsonify({
         'status': 'OK',
         'mensaje': '¡API funcionando correctamente!',
         'timestamp': datetime.utcnow().isoformat(),
-        'platform': 'Render.com - Versión JSON',
-        'storage': 'Archivos JSON (sin base de datos)'
+        'platform': 'Render.com - Versión con Dashboard',
+        'storage': 'Archivos JSON (sin base de datos)',
+        'features': ['Dashboard de administración', 'Estadísticas en tiempo real', 'Gestión completa de confirmaciones']
     })
 
 if __name__ == '__main__':
