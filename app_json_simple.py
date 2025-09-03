@@ -255,7 +255,7 @@ def admin():
                         
                         const mensaje = `¡Hola! 🎉
 
-Te invito a ${formData.nombre_evento} que se realizará el ${fecha} en ${formData.lugar_evento}.
+Soy Alfredo y te invito a ${formData.nombre_evento} que se realizará el ${fecha} en ${formData.lugar_evento}.
 
 **Detalles de tu invitación:**
 👥 Número de invitados incluidos: ${formData.numero_invitados}
